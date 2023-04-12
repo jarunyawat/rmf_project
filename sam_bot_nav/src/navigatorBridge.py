@@ -1,15 +1,19 @@
 #! /usr/bin/env python3
 import rclpy
 from rclpy.node import Node
-from nav2_simple_commander.robot_navigator import BasicNavigator
+from rclpy.action import ActionClient
+from nav2_msgs.action import FollowPath, FollowWaypoints, NavigateThroughPoses, NavigateToPose
 from rmf_fleet_msgs.msg import RobotState, Location, PathRequest, DockSummary, RobotMode
 from geometry_msgs.msg import PoseStamped, PoseWithCovarianceStamped
+from lifecycle_msgs.srv import GetState
 import math
 import numpy as np
 from tf2_ros import TransformException
 from tf2_ros.buffer import Buffer
 from tf2_ros.transform_listener import TransformListener
-from action_msgs.msg import GoalStatus
+from rclpy.qos import QoSDurabilityPolicy, QoSHistoryPolicy
+from rclpy.qos import QoSProfile, QoSReliabilityPolicy
+import time
 
 class NavigatorBridge(Node):
     def __init__(self, node_name):
@@ -23,13 +27,24 @@ class NavigatorBridge(Node):
         x_init_pos = self.get_parameter('x_pos').get_parameter_value().double_value
         y_init_pos = self.get_parameter('y_pos').get_parameter_value().double_value
         yaw_init_pos = self.get_parameter('yaw').get_parameter_value().double_value
+        self.initial_pose = None
+        self.initial_pose_received = False
         self.offset = [0, 0]
+        amcl_pose_qos = QoSProfile(
+          durability=QoSDurabilityPolicy.TRANSIENT_LOCAL,
+          reliability=QoSReliabilityPolicy.RELIABLE,
+          history=QoSHistoryPolicy.KEEP_LAST,
+          depth=1)
         # Create publisher subscriber
         self.robot_status_pub = self.create_publisher(RobotState, "robot_state", 10)
         self.path_pub = self.create_subscription(PathRequest, 'robot_path_requests', self._path_request_cb, 10)
+        self.initial_pose_pub = self.create_publisher(PoseWithCovarianceStamped, 'initialpose', 10)
+        self.localization_pose_sub = self.create_subscription(PoseWithCovarianceStamped, 'amcl_pose', self._amclPoseCallback, amcl_pose_qos)
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
         self.timer = self.create_timer(0.1, self.on_timer)
+        # Action client
+        self.nav_to_pose_client = ActionClient(self, NavigateToPose, 'navigate_to_pose')
         # Status parameter
         self.robot_status = RobotState()
         self.robot_status.battery_percent = 1.0
@@ -107,7 +122,6 @@ class NavigatorBridge(Node):
             self.get_logger().info(
                 f'Could not transform base_footprint to map: {ex}')
             return
-        self.get_logger().info("loop timer")
         cur_loc = Location()
         cur_loc.x = t.transform.translation.x
         cur_loc.y = t.transform.translation.y
@@ -115,6 +129,102 @@ class NavigatorBridge(Node):
         cur_loc.yaw = yaw
         self.robot_status.location = cur_loc
         self.robot_status_pub.publish(self.robot_status)
+
+    def setInitialPose(self, initial_pose: PoseStamped):
+        """Set the initial pose to the localization system."""
+        self.initial_pose_received = False
+        self.initial_pose = initial_pose
+        msg = PoseWithCovarianceStamped()
+        msg.pose.pose = self.initial_pose.pose
+        msg.header.frame_id = self.initial_pose.header.frame_id
+        msg.header.stamp = self.initial_pose.header.stamp
+        self.get_logger().info('Publishing Initial Pose')
+        self.initial_pose_pub.publish(msg)
+
+    def goToPose(self, pose, behavior_tree=''):
+        """Send a `NavToPose` action request."""
+        self.get_logger().info("Waiting for 'NavigateToPose' action server")
+        while not self.nav_to_pose_client.wait_for_server(timeout_sec=1.0):
+            self.info("'NavigateToPose' action server not available, waiting...")
+
+        goal_msg = NavigateToPose.Goal()
+        goal_msg.pose = pose
+        goal_msg.behavior_tree = behavior_tree
+
+        self.get_logger().info('Navigating to goal: ' + str(pose.pose.position.x) + ' ' +
+                str(pose.pose.position.y) + '...')
+        self._send_goal_future = self.nav_to_pose_client.send_goal_async(goal_msg, self._goToPose_feedbackCallback)
+        self._send_goal_future.add_done_callback(self.goToPose_response_callback)
+        
+    def goToPose_response_callback(self, future):
+        goal_handle = future.result()
+        if not goal_handle.accepted:
+            self.get_logger().info('goToPose rejected :(')
+            return
+
+        self.get_logger().info('goToPose accepted :)')
+
+        self._get_result_future = goal_handle.get_result_async()
+        self._get_result_future.add_done_callback(self.goToPose_result_callback)
+
+    def goToPose_result_callback(self, future):
+        result = future.result().result
+        # self.get_logger().info('Result: {0}'.format(result.sequence))
+    
+    def waitUntilNav2Active(self, navigator='bt_navigator', localizer='amcl'):
+        """Block until the full navigation system is up and running."""
+        self._waitForNodeToActivate(localizer)
+        if localizer == 'amcl':
+            self._waitForInitialPose()
+        self._waitForNodeToActivate(navigator)
+        self.get_logger().info('Nav2 is ready for use!')
+        return
+    
+    def _waitForInitialPose(self):
+        while not self.initial_pose_received:
+            self.get_logger().info('Setting initial pose')
+            self._setInitialPose()
+            self.get_logger().info('Waiting for amcl_pose to be received')
+            rclpy.spin_once(self, timeout_sec=1.0)
+    
+    def _amclPoseCallback(self, msg):
+        self.get_logger().info('Received amcl pose')
+        self.initial_pose_received = True
+        return
+    
+    def _setInitialPose(self):
+        msg = PoseWithCovarianceStamped()
+        msg.pose.pose = self.initial_pose.pose
+        msg.header.frame_id = self.initial_pose.header.frame_id
+        msg.header.stamp = self.initial_pose.header.stamp
+        self.get_logger().info('Publishing Initial Pose')
+        self.initial_pose_pub.publish(msg)
+        return
+        
+    def _waitForNodeToActivate(self, node_name):
+        # Waits for the node within the tester namespace to become active
+        self.get_logger().info(f'Waiting for {node_name} to become active..')
+        node_service = f'{node_name}/get_state'
+        state_client = self.create_client(GetState, node_service)
+        while not state_client.wait_for_service(timeout_sec=1.0):
+            self.get_logger().info(f'{node_service} service not available, waiting...')
+
+        req = GetState.Request()
+        state = 'unknown'
+        while state != 'active':
+            self.get_logger().info(f'Getting {node_name} state...')
+            future = state_client.call_async(req)
+            rclpy.spin_until_future_complete(self, future)
+            if future.result() is not None:
+                state = future.result().current_state.label
+                self.get_logger().info(f'Result of get_state: {state}')
+            time.sleep(2)
+        return
+
+    def _goToPose_feedbackCallback(self, msg):
+        # self.get_logger.info('Received action feedback message')
+        self.feedback = msg.feedback
+        return
 
 def main(args=None):
     rclpy.init(args=args)
