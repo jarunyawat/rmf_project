@@ -157,7 +157,6 @@ class RobotAPI:
             data = response.get('data')
             if data is not None:
                 return data['last_completed_request']
-
         return False
 
     def process_completed(self, robot_name: str):

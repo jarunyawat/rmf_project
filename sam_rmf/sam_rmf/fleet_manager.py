@@ -60,7 +60,7 @@ class State:
         self.state = state
         self.destination = destination
         self.last_path_request = None
-        self.last_completed_request = None
+        self.last_completed_request = False
         self.mode_teleop = False
 
     def is_expected_task_id(self, task_id):
@@ -164,7 +164,7 @@ class FleetManager(Node):
                 return response
 
             robot = self.robots[robot_name]
-
+            robot.last_completed_request = False
             target_x = dest.destination['x']
             target_y = dest.destination['y']
             target_yaw = dest.destination['yaw']
@@ -305,10 +305,9 @@ class FleetManager(Node):
             # Check if robot has reached destination
             if robot.destination is None:
                 return
-
             if ((msg.mode.mode == RobotMode.MODE_IDLE or msg.mode.mode == RobotMode.MODE_CHARGING) and len(msg.path) == 0):
-                robot = self.robots[msg.name]
-                robot.destination = None
+                self.get_logger().info("finish callback")
+                self.robots[msg.name].destination = None
                 # Assign last complete request
                 # completed_request = int(msg.task_id)
                 # if robot.last_completed_request != completed_request:
@@ -317,7 +316,7 @@ class FleetManager(Node):
                 #             f'Detecting completed request for {msg.name}: '
                 #             f'{completed_request}'
                 #         )
-                robot.last_completed_request = True
+                self.robots[msg.name].last_completed_request = True
 
     def dock_summary_cb(self, msg):
         for fleet in msg.docks:

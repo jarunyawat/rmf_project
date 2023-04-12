@@ -47,9 +47,9 @@ class NavigatorBridge(Node):
         self.nav_to_pose_client = ActionClient(self, NavigateToPose, 'navigate_to_pose')
         # Status parameter
         self.robot_status = RobotState()
-        self.robot_status.battery_percent = 1.0
+        self.robot_status.battery_percent = 99.0
         self.robot_status.name = self.robot_name
-        self.robot_status.mode.mode = RobotMode.MODE_CHARGING
+        self.robot_status.mode.mode = RobotMode.MODE_WAITING
         # Set initial pose
         initial_pose = PoseStamped()
         initial_pose.header.frame_id = 'map'
@@ -169,6 +169,9 @@ class NavigatorBridge(Node):
 
     def goToPose_result_callback(self, future):
         result = future.result().result
+        self.get_logger().info("reach GOAL")
+        self.robot_status.path = []
+        self.robot_status.mode.mode = RobotMode.MODE_IDLE
         # self.get_logger().info('Result: {0}'.format(result.sequence))
     
     def waitUntilNav2Active(self, navigator='bt_navigator', localizer='amcl'):
@@ -188,7 +191,7 @@ class NavigatorBridge(Node):
             rclpy.spin_once(self, timeout_sec=1.0)
     
     def _amclPoseCallback(self, msg):
-        self.get_logger().info('Received amcl pose')
+        # self.get_logger().info('Received amcl pose')
         self.initial_pose_received = True
         return
     

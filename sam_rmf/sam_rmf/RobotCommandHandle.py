@@ -201,6 +201,7 @@ class RobotCommandHandle(adpt.RobotCommandHandle):
                                                  self.map_name)
 
                     if response:
+                        self.node.get_logger().info(f"state moving to: {[x, y, theta]}")
                         self.remaining_waypoints = self.remaining_waypoints[1:]
                         self.state = RobotState.MOVING
                     else:
@@ -230,6 +231,7 @@ class RobotCommandHandle(adpt.RobotCommandHandle):
                     self.sleep_for(0.1)
                     # Check if we have reached the target
                     with self._lock:
+                        # self.node.get_logger().info(f"moving complete: {self.api.navigation_completed(self.name)}")
                         if (self.api.navigation_completed(self.name)):
                             self.node.get_logger().info(
                                 f"Robot [{self.name}] has reached its target "
