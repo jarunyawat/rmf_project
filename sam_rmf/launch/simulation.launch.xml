@@ -1,0 +1,21 @@
+<?xml version='1.0' ?>
+
+<launch>
+    <group>
+        <let name="world_path" value="$(find-pkg-share sam_rmf)/maps/office_floorplan/office_floorplan.world" />
+        <let name="model_path" value="$(find-pkg-share sam_rmf)/maps/office_floorplan/models:$(find-pkg-share rmf_demos_assets)/models:/usr/share/gazebo-11/models" />
+        <let name="resource_path" value="$(find-pkg-share rmf_demos_assets):/usr/share/gazebo-11" />
+        <let name="plugin_path" value="$(find-pkg-prefix rmf_robot_sim_gz_classic_plugins)/lib/rmf_robot_sim_gz_classic_plugins:$(find-pkg-prefix rmf_building_sim_gz_classic_plugins)/lib/rmf_building_sim_gz_classic_plugins:/usr/share/gazebo-11" />
+
+        <executable cmd="gzserver --verbose -s libgazebo_ros_factory.so -s libgazebo_ros_init.so $(var world_path)" output="both">
+            <env name="GAZEBO_MODEL_PATH" value="$(var model_path)" />
+            <env name="GAZEBO_RESOURCE_PATH" value="$(var resource_path)" />
+            <env name="GAZEBO_PLUGIN_PATH" value="$(var plugin_path)" />
+        </executable>
+        <executable cmd="gzclient --verbose $(var world_path)" output="both">
+            <env name="GAZEBO_MODEL_PATH" value="$(var model_path)" />
+            <env name="GAZEBO_RESOURCE_PATH" value="$(var resource_path)" />
+            <env name="GAZEBO_PLUGIN_PATH" value="$(var plugin_path)" />
+        </executable>
+    </group>
+</launch>

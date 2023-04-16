@@ -4,14 +4,14 @@
     <include file="$(find-pkg-share sam_rmf)/launch/common.launch.xml">
         <arg name="use_sim_time" value="false"/>
         <arg name="viz_config_file" value ="$(find-pkg-share rmf_demos)/include/office/office.rviz"/>
-        <arg name="config_file" value="$(find-pkg-share sam_rmf)/map/office_floorplan.building.yaml"/>
+        <arg name="config_file" value="$(find-pkg-share sam_rmf)/map/home_floorplan.building.yaml"/>
     </include>
     <group>
         <let name="fleet_name" value="samRobot"/>
         <include file="$(find-pkg-share sam_rmf)/launch/sam_bot_fleet.launch.xml">
             <arg name="use_sim_time" value="false"/>
-            <arg name="nav_graph_file" value="$(find-pkg-share sam_rmf)/maps/office_floorplan/nav_graphs/0.yaml" />
-            <arg name="config_file" value="$(find-pkg-share sam_rmf)/config/config.yaml"/>
+            <arg name="nav_graph_file" value="$(find-pkg-share sam_rmf)/maps/home_floorplan/nav_graphs/0.yaml" />
+            <arg name="config_file" value="$(find-pkg-share sam_rmf)/config/home_config.yaml"/>
             <arg name="server_uri" value=""/>
         </include>
         <include file="$(find-pkg-share rmf_fleet_adapter)/robot_state_aggregator.launch.xml">
