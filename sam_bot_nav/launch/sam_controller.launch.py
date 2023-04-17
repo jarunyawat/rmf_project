@@ -15,8 +15,8 @@ def generate_launch_description():
     y_pos = LaunchConfiguration("y_pos")
     yaw = LaunchConfiguration("yaw")
     declare_robot_name = DeclareLaunchArgument('robot_name', default_value="")
-    declare_x_pos = DeclareLaunchArgument('x_pos', default_value="-9.1")
-    declare_y_pos = DeclareLaunchArgument('y_pos', default_value="-4.67")
+    declare_x_pos = DeclareLaunchArgument('x_pos', default_value="0.0")
+    declare_y_pos = DeclareLaunchArgument('y_pos', default_value="0.0")
     declare_yaw = DeclareLaunchArgument('yaw', default_value="0.0")
     robot_nav_controller = Node(
         package="sam_bot_nav",
