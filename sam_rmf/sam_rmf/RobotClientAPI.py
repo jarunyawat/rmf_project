@@ -98,7 +98,7 @@ class RobotAPI:
             and the use case. For example, load/unload a cart for Deliverybot
             or begin cleaning a zone for a cleaning robot.
             Return True if the robot has accepted the request, else False'''
-        url = self.prefix + f"/open-rmf/rmf_demos_fm/start_task?robot_name={robot_name}"
+        url = self.prefix + f"/start_task?robot_name={robot_name}"
         # data fields: task, map_name, destination{}, data{}
         data = {'task': process, 'map_name': map_name}
         try:
@@ -162,6 +162,9 @@ class RobotAPI:
     def process_completed(self, robot_name: str):
         ''' Return True if the robot has successfully completed its previous
             process request. Else False.'''
+        return self.navigation_completed(robot_name)
+    
+    def docking_completed(self, robot_name: str):
         return self.navigation_completed(robot_name)
 
     def battery_soc(self, robot_name: str):

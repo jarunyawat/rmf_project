@@ -105,7 +105,8 @@ class NavigatorBridge(Node):
                 goal_pose.header.stamp = self.get_clock().now().to_msg()
                 goal_pose.pose.position.x = msg.path[1].x
                 goal_pose.pose.position.y = msg.path[1].y
-                q = self._get_quaternion_from_euler(0, 0, -msg.path[1].yaw)
+                angle = np.arctan2(msg.path[1].y-msg.path[0].y, msg.path[0].y-msg.path[0].x)
+                q = self._get_quaternion_from_euler(0, 0, angle)
                 goal_pose.pose.orientation.x = q[0]
                 goal_pose.pose.orientation.y = q[1]
                 goal_pose.pose.orientation.z = q[2]

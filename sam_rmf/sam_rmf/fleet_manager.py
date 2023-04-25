@@ -246,7 +246,7 @@ class FleetManager(Node):
                 return response
 
             robot = self.robots[robot_name]
-
+            robot.last_completed_request = False
             path_request = PathRequest()
             cur_loc = robot.state.location
             cur_x = cur_loc.x
@@ -256,10 +256,13 @@ class FleetManager(Node):
             target_loc = Location()
             path_request.path.append(cur_loc)
             # Append Location from dock dictionary
-            for wp in self.docks[task.task]:
-                target_loc = wp
-                path_request.path.append(target_loc)
-                previous_wp = [wp.x, wp.y, wp.yaw]
+            # for wp in self.docks[task.task]:
+            #     target_loc = wp
+            #     path_request.path.append(target_loc)
+            #     previous_wp = [wp.x, wp.y, wp.yaw]
+            wp = self.docks[task.task]
+            target_loc = wp
+            path_request.path.append(target_loc)
 
             path_request.fleet_name = self.fleet_name
             path_request.robot_name = robot_name

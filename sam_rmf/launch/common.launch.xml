@@ -36,16 +36,6 @@
     </include>
   </group>
 
-  <!-- Door Supervisor -->
-  <group>
-    <node pkg="rmf_fleet_adapter" exec="door_supervisor"/>
-  </group>
-
-  <!-- Lift Supervisor -->
-  <group>
-    <node pkg="rmf_fleet_adapter" exec="lift_supervisor"/>
-  </group>
-
   <!-- Dispatcher Node -->
   <group>
     <node pkg="rmf_task_ros2" exec="rmf_task_dispatcher"  output="screen">
