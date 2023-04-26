@@ -10,7 +10,6 @@ from launch.actions import DeclareLaunchArgument
 
 def generate_launch_description():
     # Get the launch directory
-    robot_name = LaunchConfiguration("robot_name")
     x_pos = LaunchConfiguration("x_pos")
     y_pos = LaunchConfiguration("y_pos")
     yaw = LaunchConfiguration("yaw")

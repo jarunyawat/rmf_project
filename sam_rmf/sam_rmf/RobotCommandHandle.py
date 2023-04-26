@@ -190,8 +190,8 @@ class RobotCommandHandle(adpt.RobotCommandHandle):
                     target_pose = self.target_waypoint.position
                     [x, y] = self.transforms["rmf_to_robot"].transform(
                         target_pose[:2])
-                    theta = target_pose[2] + \
-                        self.transforms['orientation_offset']
+                    # theta = target_pose[2] + self.transforms['orientation_offset']
+                    theta = target_pose[2]
                     # ------------------------ #
                     # IMPLEMENT YOUR CODE HERE #
                     # Ensure x, y, theta are in units that api.navigate() #
