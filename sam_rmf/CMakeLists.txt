@@ -73,6 +73,7 @@ install(
   sam_rmf/RobotClientAPI.py
   sam_rmf/RobotCommandHandle.py
   sam_rmf/dispenser_mock.py
+  sam_rmf/ingestor_mock.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
