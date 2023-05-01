@@ -33,7 +33,11 @@ class RobotAPI:
         self.password = password
         self.connected = False
         self.debug = False
-        self.timeout = 1
+        self.timeout = 0.5
+        self.robot_ip = {
+            "robot_1": "http://192.168.1.14:5000",
+            "robot_2": "http://192.168.1.15:5000"
+        }
 
     def position(self, robot_name: str):
         ''' Return [x, y, theta] expressed in the robot's coordinate frame or
@@ -46,13 +50,9 @@ class RobotAPI:
                         -yaw
                 success
         '''
-        if robot_name is not None:
-            url = self.prefix +\
-                f'/status/?robot_name={robot_name}'
-        else:
-            url = self.prefix + f'/status'
+        url = self.robot_ip[robot_name] + '/status/'
         try:
-            response = requests.get(url, self.timeout)
+            response = requests.get(url, timeout=self.timeout)
             response.raise_for_status()
             data = response.json()
             if self.debug:
@@ -76,7 +76,7 @@ class RobotAPI:
             should return True if the robot has accepted the request,
             else False'''
         assert(len(pose) > 2)
-        url = self.prefix + f'/navigate/?robot_name={robot_name}'
+        url = self.robot_ip[robot_name] + "/navigate/"
         data = {}  # data fields: task, map_name, destination{}, data{}
         data['map_name'] = map_name
         data['destination'] = {'x': pose[0], 'y': pose[1], 'yaw': pose[2]}
@@ -98,7 +98,7 @@ class RobotAPI:
             and the use case. For example, load/unload a cart for Deliverybot
             or begin cleaning a zone for a cleaning robot.
             Return True if the robot has accepted the request, else False'''
-        url = self.prefix + f"/start_task?robot_name={robot_name}"
+        url = self.robot_ip[robot_name] + "/start_task/"
         # data fields: task, map_name, destination{}, data{}
         data = {'task': process, 'map_name': map_name}
         try:
@@ -116,10 +116,9 @@ class RobotAPI:
     def stop(self, robot_name: str):
         ''' Command the robot to stop.
             Return True if robot has successfully stopped. Else False'''
-        url = self.prefix +\
-            f'/stop_robot?robot_name={robot_name}'
+        url = self.robot_ip[robot_name] + "/stop_robot/"
         try:
-            response = requests.get(url, self.timeout)
+            response = requests.get(url, timeout=self.timeout)
             response.raise_for_status()
             if self.debug:
                 print(f'Response: {response.json()}')
@@ -186,7 +185,7 @@ class RobotAPI:
     def toggle_action(self, robot_name: str, toggle: bool):
         '''Request to toggle the robot's mode_teleop parameter.
            Return True if the toggle request is successful'''
-        url = self.prefix + f"/toggle_action?robot_name={robot_name}"
+        url = self.robot_ip[robot_name] + "/toggle_action/"
         data = {'toggle': toggle}
         try:
             response = requests.post(url, timeout=self.timeout, json=data)
@@ -201,10 +200,7 @@ class RobotAPI:
         return False
 
     def data(self, robot_name=None):
-        if robot_name is None:
-            url = self.prefix + f'/status/'
-        else:
-            url = self.prefix + f'/status?robot_name={robot_name}'
+        url = self.robot_ip[robot_name] + "/status/"
         try:
             response = requests.get(url, timeout=self.timeout)
             response.raise_for_status()
